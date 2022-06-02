@@ -154,6 +154,7 @@ def play_game(game):
             if jump_in_players != []:
                 #randomly select one of them; only the fastest one can jump in
                 jump_in_player = np.random.choice(jump_in_players)
+                int_jump_in_player = int(str.split(jump_in_player,'_')[-1])
                 #the played card for the turn is the card held by the player 
                 #who jumped in that is identical to that on the top of the 
                 #discard pile; no cards need to be drawn this turn
@@ -162,8 +163,7 @@ def play_game(game):
                 #adjust n_cycles so that it is as if play had continued in the 
                 #current direction from the player whose turn it was to the 
                 #player who jumped in 
-                n_cycles += (int(jump_in_player[-1])-
-                              player) % N_players 
+                n_cycles += (int_jump_in_player - player) % N_players 
                 previous_player = (n_cycles - direction) % N_players + 1 
                 player = n_cycles % N_players + 1 
             else:
