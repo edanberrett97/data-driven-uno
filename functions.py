@@ -19,6 +19,12 @@ def eligible_cards(hand_cards,discard_pile_card):
             if c[0] == discard_pile_card[0]:
                     #card is allowed to be played
                     eligible.append(c)
+            #checking if card is same type of action card as discard_pile_card
+            elif str.split(discard_pile_card,'_')[-1] in ['skip','reverse']:
+                if str.split(c,'_')[-1] == str.split(
+                                                    discard_pile_card,'_')[-1]:
+                    #card is allowed to be played
+                    eligible.append(c)
     return eligible
 
 #this function finds all "+2" or "+4" cards in the list hand_cards that are 
