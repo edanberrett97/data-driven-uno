@@ -41,3 +41,17 @@ def eligible_plus_cards(hand_cards,discard_pile_card):
         #already be included in the output of eligible_cards
         eligible = [] 
     return eligible
+
+#this function returns the number of points a card is worth
+def card_score(card):
+    if 'wild' in card:
+        return 50
+    elif '_' in card:
+        return 20
+    else:
+        return int(card[1])
+
+#this function returns the number of points the cards held by a player are 
+#worth in total
+def hand_score(hand_cards):
+    return sum([card_score(c) for c in hand_cards])

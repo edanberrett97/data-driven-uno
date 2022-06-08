@@ -1,5 +1,6 @@
 from functions import eligible_cards
 from functions import eligible_plus_cards
+from functions import hand_score
 import random
 import numpy as np
 import pandas as pd
@@ -53,6 +54,10 @@ def play_game(game):
     })
     data.update({
         'player_'+str(i+1)+'_hand_post_play':[] for i in range(N_players)
+    })
+    data.update({
+        'score':[],
+        'winner':[]
     })
     
     #game starts with original deck which is then shuffled
@@ -131,7 +136,7 @@ def play_game(game):
         discard_pile_pre_play = discard_pile[:]
         player_hands_pre_play = {p:player_hands[p][:] for p in player_hands}
         player_hand_pre_play = player_hands['player_'+str(player)][:]
-
+        
         #if a player has a card with the same number and colour as that on the 
         #top of the discard pile, they can play that card (jump in) even if it 
         #isn't their turn, if they are fast enough, with play then continuing 
@@ -528,10 +533,20 @@ def play_game(game):
         for c in column_variables:
             data[c].append(column_variables[c])
             
-        turn += 1
-        n_cycles += direction
         #end the game if any player's hand is empty
         if [] in [player_hands[p] for p in player_hands]:
+            for p in player_hands:
+                if player_hands[p] == []:
+                    winner = p
             end = True
+            score = sum([hand_score(player_hands[p]) for p in player_hands])
+        else:
+            winner = ''
+            score = ''
+        data['score'].append(score)
+        data['winner'].append(winner)
+            
+        turn += 1
+        n_cycles += direction
             
     return pd.DataFrame(data)
