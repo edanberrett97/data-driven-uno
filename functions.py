@@ -20,7 +20,7 @@ def eligible_cards(hand_cards,discard_pile_card):
                     #card is allowed to be played
                     eligible.append(c)
             #checking if card is same type of action card as discard_pile_card
-            elif str.split(discard_pile_card,'_')[-1] in ['skip','reverse']:
+            elif '_' in discard_pile_card:#str.split(discard_pile_card,'_')[-1] in ['skip','reverse']:
                 if str.split(c,'_')[-1] == str.split(
                                                     discard_pile_card,'_')[-1]:
                     #card is allowed to be played
@@ -55,3 +55,4 @@ def card_score(card):
 #worth in total
 def hand_score(hand_cards):
     return sum([card_score(c) for c in hand_cards])
+
