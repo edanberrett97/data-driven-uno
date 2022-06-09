@@ -29,7 +29,7 @@ original_deck = all_number_cards + all_wild_cards + all_action_cards
 def play_game(game):
 
     #table to add data from each turn to
-    data = {
+    turns = {
         'game':[],
         'turn':[],
         'n_cycles':[],
@@ -37,10 +37,10 @@ def play_game(game):
         'deck_pre_play':[],
         'discard_pile_pre_play':[]
     }
-    data.update({
+    turns.update({
         'player_'+str(i+1)+'_hand_pre_play':[] for i in range(N_players)
     })
-    data.update({
+    turns.update({
         'jump_in_player':[],
         'player_possible_cards':[],
         'player_possible_plus_cards':[],
@@ -52,13 +52,16 @@ def play_game(game):
         'deck_post_play':[],
         'discard_pile_post_play':[]
     })
-    data.update({
+    turns.update({
         'player_'+str(i+1)+'_hand_post_play':[] for i in range(N_players)
     })
-    data.update({
-        'score':[],
-        'winner':[]
-    })
+
+    #table in which to insert the game, the player that won it, and their score
+    winners = {
+        'game':[],
+        'winner':[],
+        'score':[]
+    }
     
     #game starts with original deck which is then shuffled
     deck = original_deck[:]
@@ -531,7 +534,7 @@ def play_game(game):
                                              for p in player_hands_post_play
         })
         for c in column_variables:
-            data[c].append(column_variables[c])
+            turns[c].append(column_variables[c])
             
         #end the game if any player's hand is empty
         if [] in [player_hands[p] for p in player_hands]:
@@ -540,13 +543,11 @@ def play_game(game):
                     winner = p
             end = True
             score = sum([hand_score(player_hands[p]) for p in player_hands])
-        else:
-            winner = ''
-            score = ''
-        data['score'].append(score)
-        data['winner'].append(winner)
-            
+            winners['game'].append(game)
+            winners['winner'].append(winner)
+            winners['score'].append(score)
+
         turn += 1
         n_cycles += direction
             
-    return pd.DataFrame(data)
+    return pd.DataFrame(turns),pd.DataFrame(winners)
