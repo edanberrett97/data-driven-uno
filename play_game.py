@@ -55,9 +55,6 @@ def play_game(game):
         'player_hand_post_play':[]
     })
     turns.update({
-        'player_'+str(i+1)+'_hand_post_play':[] for i in range(N_players)
-    })
-    turns.update({
         'branch_winner':[],
         'branch_winner_score':[]
     })
@@ -548,10 +545,6 @@ def play_game(game):
             'wild_card_chosen_colour':wild_card_chosen_colour,
             'trade_player':trade_player,
             'player_hand_post_play':','.join(player_hand_post_play)
-        })
-        column_variables.update({
-            p+'_hand_post_play':','.join(player_hands_post_play[p]) 
-                                             for p in player_hands_post_play
         })
         column_variables.update({
             'branch_winner':branch_winner,
