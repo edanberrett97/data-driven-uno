@@ -1,6 +1,5 @@
 from functions import eligible_cards
 from functions import eligible_plus_cards
-from functions import hand_score
 from play_from_state import play_from_state
 import random
 import numpy as np
@@ -34,35 +33,21 @@ def play_game(game):
     turns = {
         'game':[],
         'turn':[],
-        'n_cycles':[],
         'direction_pre_play':[],
         'player':[],
-        'deck_pre_play':[],
-        'discard_pile_pre_play':[],
         'player_hand_pre_play':[],
-        'player_n_cards_pre_play':[]
+        'jump_in_player':[]
     }
     turns.update({
         'player_'+str(i+1)+'_hand_pre_play':[] for i in range(N_players)
     })
     turns.update({
-        'player_'+str(i+1)+'_n_cards_pre_play':[] for i in range(N_players)
-    })
-    turns.update({
-        'jump_in_player':[],
         'player_possible_cards':[],
         'player_possible_plus_cards':[],
         'played_card':[],
+        'challenge':[],
         'wild_card_chosen_colour':[],
-        'previous_player_drawn_cards':[],
-        'player_drawn_cards':[],
         'trade_player':[],
-        'deck_post_play':[],
-        'discard_pile_post_play':[],
-        'player_hand_post_play':[]
-    })
-    turns.update({
-        'player_'+str(i+1)+'_hand_post_play':[] for i in range(N_players)
     })
     turns.update({
         'branch_winner':[],
@@ -157,21 +142,11 @@ def play_game(game):
         previous_player = (n_cycles - direction) % N_players + 1
         player = n_cycles % N_players + 1
         
-        #print(deck,'g')
-        #print(discard_pile,'g')
-        #print(player_hands,'g')
-        #print(player,'g')
-        #print('')
-        
-        #print(play_from_state(game,copy.deepcopy(state),colours,N_players))
         leaf = play_from_state(game,copy.deepcopy(state),colours,N_players)
         branch_winner = leaf[0]
         branch_winner_score = leaf[1]
 
-        #the deck, discard pile, and hands of each player before anything
-        #happens this turn
-        deck_pre_play = deck[:]
-        discard_pile_pre_play = discard_pile[:]
+        #the hands of each player before anything happens this turn
         player_hands_pre_play = {p:player_hands[p][:] for p in player_hands}
         player_hand_pre_play = player_hands['player_'+str(player)][:]
         direction_pre_play = direction #and direction before anything happens
@@ -529,55 +504,32 @@ def play_game(game):
                                 [player_hands[p] for p in player_hands][i]
                                     for i in range(N_players)}
             player_hands = new_player_hands
-                    
-        #the deck, discard pile, and hands of each player at the end of this
-        #turn
-        deck_post_play = deck[:]
-        discard_pile_post_play = discard_pile[:]
-        player_hands_post_play = {p:player_hands[p][:] for p in player_hands}
-        player_hand_post_play = player_hands['player_'+str(player)][:]
-                
+                                    
         #if a game has lasted this long, then it is almost certainly stuck in a
         #loop, so end it
         if turn > 10000:
             end = True
-        
+                
         #adding data from current turn to game data
         column_variables = {
             'game':game,
             'turn':turn,
-            'n_cycles':n_cycles,
             'direction_pre_play':direction_pre_play,
             'player':player,
-            'deck_pre_play':','.join(deck_pre_play),
-            'discard_pile_pre_play':','.join(discard_pile_pre_play),
             'player_hand_pre_play':','.join(player_hand_pre_play),
-            'player_n_cards_pre_play':len(player_hand_pre_play)
+            'jump_in_player':jump_in_player
         }
         column_variables.update({
             p+'_hand_pre_play':','.join(player_hands_pre_play[p]) 
                                              for p in player_hands_pre_play
         })
         column_variables.update({
-            p+'_n_cards_pre_play':len(player_hands_pre_play[p]) 
-                                             for p in player_hands_pre_play
-        })
-        column_variables.update({
-            'jump_in_player':jump_in_player,
             'player_possible_cards':','.join(player_possible_cards),
             'player_possible_plus_cards':','.join(player_possible_plus_cards),
             'played_card':played_card,
+            'challenge':challenge,
             'wild_card_chosen_colour':wild_card_chosen_colour,
-            'previous_player_drawn_cards':','.join(players_drawn_cards[0]),
-            'player_drawn_cards':','.join(players_drawn_cards[1]),
             'trade_player':trade_player,
-            'deck_post_play':','.join(deck_post_play),
-            'discard_pile_post_play':','.join(discard_pile_post_play),
-            'player_hand_post_play':','.join(player_hand_post_play)
-        })
-        column_variables.update({
-            p+'_hand_post_play':','.join(player_hands_post_play[p]) 
-                                             for p in player_hands_post_play
         })
         column_variables.update({
             'branch_winner':branch_winner,
