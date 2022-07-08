@@ -1,9 +1,11 @@
 from functions import eligible_cards
 from functions import eligible_plus_cards
 from functions import hand_score
+from play_from_state import play_from_state
 import random
 import numpy as np
 import pandas as pd
+import copy 
 
 #setting some parameters for the game
 colours = ['r','g','b','y']
@@ -33,12 +35,18 @@ def play_game(game):
         'game':[],
         'turn':[],
         'n_cycles':[],
+        'direction_pre_play':[],
         'player':[],
         'deck_pre_play':[],
-        'discard_pile_pre_play':[]
+        'discard_pile_pre_play':[],
+        'player_hand_pre_play':[],
+        'player_n_cards_pre_play':[]
     }
     turns.update({
         'player_'+str(i+1)+'_hand_pre_play':[] for i in range(N_players)
+    })
+    turns.update({
+        'player_'+str(i+1)+'_n_cards_pre_play':[] for i in range(N_players)
     })
     turns.update({
         'jump_in_player':[],
@@ -50,19 +58,17 @@ def play_game(game):
         'player_drawn_cards':[],
         'trade_player':[],
         'deck_post_play':[],
-        'discard_pile_post_play':[]
+        'discard_pile_post_play':[],
+        'player_hand_post_play':[]
     })
     turns.update({
         'player_'+str(i+1)+'_hand_post_play':[] for i in range(N_players)
     })
+    turns.update({
+        'branch_winner':[],
+        'branch_winner_score':[]
+    })
 
-    #table in which to insert the game, the player that won it, and their score
-    winners = {
-        'game':[],
-        'winner':[],
-        'score':[]
-    }
-    
     #game starts with original deck which is then shuffled
     deck = original_deck[:]
     random.shuffle(deck)
@@ -127,18 +133,48 @@ def play_game(game):
     
     #players keep taking turns until end becomes True
     while end == False:
+
+        state = {
+            'deck':deck[:],
+            'player_hands':{p:player_hands[p][:] for p in player_hands},
+            'discard_pile':discard_pile[:],
+            'end':end,
+            'turn':turn,
+            'n_cycles':n_cycles,
+            'direction':direction,
+            'wild_card_chosen_colour':wild_card_chosen_colour,
+            'wild_card_last_played':wild_card_last_played,
+            'last_plus_four_turn':last_plus_four_turn,
+            'illegal_plus_four':illegal_plus_four,
+            'n_cards_to_pick_up':n_cards_to_pick_up,
+            'discard_pile_flip':discard_pile_flip,
+            'loop_count':loop_count,
+            'drawn_wpf_card_played':drawn_wpf_card_played
+        }
         
         #the player and previous player (out of 1 to N_players) can be 
         #determined from n_cycles like so
         previous_player = (n_cycles - direction) % N_players + 1
         player = n_cycles % N_players + 1
         
+        #print(deck,'g')
+        #print(discard_pile,'g')
+        #print(player_hands,'g')
+        #print(player,'g')
+        #print('')
+        
+        #print(play_from_state(game,copy.deepcopy(state),colours,N_players))
+        leaf = play_from_state(game,copy.deepcopy(state),colours,N_players)
+        branch_winner = leaf[0]
+        branch_winner_score = leaf[1]
+
         #the deck, discard pile, and hands of each player before anything
         #happens this turn
         deck_pre_play = deck[:]
         discard_pile_pre_play = discard_pile[:]
         player_hands_pre_play = {p:player_hands[p][:] for p in player_hands}
         player_hand_pre_play = player_hands['player_'+str(player)][:]
+        direction_pre_play = direction #and direction before anything happens
         
         #if a player has a card with the same number and colour as that on the 
         #top of the discard pile, they can play that card (jump in) even if it 
@@ -182,7 +218,8 @@ def play_game(game):
             jump_in_player = ''
             jump_in = False
 
-        #cards that the current player is allowed to play are determined here
+        #cards that the current player is allowed to play are determined here,
+        #assuming that they don't have to pick up any cards
         if ((discard_pile != [] 
             and 'wild' in discard_pile[-1]) 
             or discard_pile == []): 
@@ -498,6 +535,7 @@ def play_game(game):
         deck_post_play = deck[:]
         discard_pile_post_play = discard_pile[:]
         player_hands_post_play = {p:player_hands[p][:] for p in player_hands}
+        player_hand_post_play = player_hands['player_'+str(player)][:]
                 
         #if a game has lasted this long, then it is almost certainly stuck in a
         #loop, so end it
@@ -509,12 +547,19 @@ def play_game(game):
             'game':game,
             'turn':turn,
             'n_cycles':n_cycles,
+            'direction_pre_play':direction_pre_play,
             'player':player,
             'deck_pre_play':','.join(deck_pre_play),
-            'discard_pile_pre_play':','.join(discard_pile_pre_play)
+            'discard_pile_pre_play':','.join(discard_pile_pre_play),
+            'player_hand_pre_play':','.join(player_hand_pre_play),
+            'player_n_cards_pre_play':len(player_hand_pre_play)
         }
         column_variables.update({
             p+'_hand_pre_play':','.join(player_hands_pre_play[p]) 
+                                             for p in player_hands_pre_play
+        })
+        column_variables.update({
+            p+'_n_cards_pre_play':len(player_hands_pre_play[p]) 
                                              for p in player_hands_pre_play
         })
         column_variables.update({
@@ -527,27 +572,25 @@ def play_game(game):
             'player_drawn_cards':','.join(players_drawn_cards[1]),
             'trade_player':trade_player,
             'deck_post_play':','.join(deck_post_play),
-            'discard_pile_post_play':','.join(discard_pile_post_play)
+            'discard_pile_post_play':','.join(discard_pile_post_play),
+            'player_hand_post_play':','.join(player_hand_post_play)
         })
         column_variables.update({
             p+'_hand_post_play':','.join(player_hands_post_play[p]) 
                                              for p in player_hands_post_play
+        })
+        column_variables.update({
+            'branch_winner':branch_winner,
+            'branch_winner_score':branch_winner_score
         })
         for c in column_variables:
             turns[c].append(column_variables[c])
             
         #end the game if any player's hand is empty
         if [] in [player_hands[p] for p in player_hands]:
-            for p in player_hands:
-                if player_hands[p] == []:
-                    winner = p
             end = True
-            score = sum([hand_score(player_hands[p]) for p in player_hands])
-            winners['game'].append(game)
-            winners['winner'].append(winner)
-            winners['score'].append(score)
 
         turn += 1
         n_cycles += direction
             
-    return pd.DataFrame(turns),pd.DataFrame(winners)
+    return pd.DataFrame(turns)
