@@ -40,9 +40,6 @@ def play_game(game):
         'player_n_cards_pre_play':[]
     }
     turns.update({
-        'player_'+str(i+1)+'_hand_pre_play':[] for i in range(N_players)
-    })
-    turns.update({
         'player_'+str(i+1)+'_n_cards_pre_play':[] for i in range(N_players)
     })
     turns.update({
@@ -515,8 +512,7 @@ def play_game(game):
         if turn > 10000:
             end = True
             
-        #the hands of each player at the end of this turn
-        player_hands_post_play = {p:player_hands[p][:] for p in player_hands}
+        #the hand of the current player at the end of this turn
         player_hand_post_play = player_hands['player_'+str(player)][:]
                 
         #adding data from current turn to game data
@@ -529,10 +525,6 @@ def play_game(game):
             'jump_in_player':jump_in_player,
             'player_n_cards_pre_play':len(player_hand_pre_play)
         }
-        column_variables.update({
-            p+'_hand_pre_play':','.join(player_hands_pre_play[p]) 
-                                             for p in player_hands_pre_play
-        })
         column_variables.update({
             p+'_n_cards_pre_play':len(player_hands_pre_play[p]) 
                                              for p in player_hands_pre_play
