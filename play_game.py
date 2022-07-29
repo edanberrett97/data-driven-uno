@@ -1,5 +1,6 @@
 from functions import eligible_cards
 from functions import eligible_plus_cards
+from functions import hand_score
 from play_from_state import play_from_state
 import random
 import numpy as np
@@ -8,13 +9,13 @@ import copy
 
 #setting some parameters for the game
 colours = ['r','g','b','y']
-N = 9
-N_duplicates = 2
+N = 2
+N_duplicates = 1
 N_zeros = 1
-N_players = 5
-start_cards_per_player = 5
-N_wild = 2
-N_action = 2
+N_players = 2
+start_cards_per_player = 2
+N_wild = 1
+N_action = 1
 actions = ['_skip','_reverse','_+2']
 #creating a list of all the cards in the deck
 all_number_cards = [c + str(j+1) 
@@ -27,11 +28,12 @@ all_action_cards = [c + a
                     for a in actions] * N_action
 original_deck = all_number_cards + all_wild_cards + all_action_cards
 
-def play_game(game):
+def play_round(game,round,start_player,player_scores):
 
     #table to add data from each turn to
     turns = {
         'game':[],
+        'round':[],
         'turn':[],
         'direction_pre_play':[],
         'player':[],
@@ -118,35 +120,114 @@ def play_game(game):
     #decision to not challenge has been made
     drawn_wpf_card_played = False
     
+    n_cycles += start_player - 1 #EXPLAIN WHY
+    
     #players keep taking turns until end becomes True
     while end == False:
+        print('REAL TURN START')
+        print(player_hands)
+        #when play_from_state_end is True, the separate game ends
+        play_from_state_end = False
+        #the number of rounds played in the separate game
+        play_from_state_round = 0
+        #the scores of each player in the separate game
+        pfs_player_scores = copy.deepcopy(player_scores)
+        #here, the full seperate game is played, starting from the current 
+        #state of play
+        while play_from_state_end == False:
+            print('fake round start')
+            print(player_hands)
+            #start the first round of the separate game from the current state 
+            #of play in the actual game
+            if play_from_state_round == 0:
+                branch_winner = ''
+                #the state of the actual game
+                state = {
+                    'deck':deck[:],
+                    'player_hands':{p:player_hands[p][:] 
+                                                        for p in player_hands},
+                    'discard_pile':discard_pile[:],
+                    'end':end,
+                    'turn':turn,
+                    'n_cycles':n_cycles,
+                    'direction':direction,
+                    'wild_card_chosen_colour':wild_card_chosen_colour,
+                    'wild_card_last_played':wild_card_last_played,
+                    'last_plus_four_turn':last_plus_four_turn,
+                    'illegal_plus_four':illegal_plus_four,
+                    'n_cards_to_pick_up':n_cards_to_pick_up,
+                    'discard_pile_flip':discard_pile_flip,
+                    'loop_count':loop_count,
+                    'drawn_wpf_card_played':drawn_wpf_card_played
+                }
+            #if the first round in the separate game has finished, start a 
+            #completely new round
+            else:
+                #in this case, we need to re-shuffle the deck, deal out new
+                #hands to each player, and start a new discard pile
+                pfs_new_round_deck = original_deck[:]
+                random.shuffle(pfs_new_round_deck)
+                pfs_initial_drawn_cards = pfs_new_round_deck[
+                                        :N_players*start_cards_per_player+1]
+                pfs_new_round_deck = pfs_new_round_deck[
+                                        N_players*start_cards_per_player+1:] 
+                pfs_new_round_player_hands = {
+                    'player_'+str(i+1):list(pfs_initial_drawn_cards)[
+                        start_cards_per_player*i:start_cards_per_player*(i+1)] 
+                            for i in range(N_players)
+                }
+                pfs_new_round_discard_pile = [pfs_initial_drawn_cards[-1]]
+                #the winner of the last round in the separate game starts this 
+                #current round in the separate game
+                pfs_new_round_start_player = int(branch_winner[-1])
+                #the state of the separate game now that a new round within it
+                #has started
+                state = {
+                    'deck':pfs_new_round_deck,
+                    'player_hands':pfs_new_round_player_hands,
+                    'discard_pile':pfs_new_round_discard_pile,
+                    'end':False,
+                    'turn':0,
+                    'n_cycles':pfs_new_round_start_player - 1,
+                    'direction':1,
+                    'wild_card_chosen_colour':'',
+                    'wild_card_last_played':False,
+                    'last_plus_four_turn':0,
+                    'illegal_plus_four':False,
+                    'n_cards_to_pick_up':0,
+                    'discard_pile_flip':False,
+                    'loop_count':0,
+                    'drawn_wpf_card_played':False
+                }
+            #if the separate game has not finished            
+            if play_from_state_end == False:     
+                #play a round 
+                leaf = play_from_state(
+                                game,copy.deepcopy(state),colours,N_players)
+                #the winner of the played round and their score
+                branch_winner = leaf[0]
+                branch_winner_score = leaf[1]
+                print('fake round outcome',branch_winner,branch_winner_score)
+            #add the score of the round winner to their total score so far for
+            #the separate game
+            print(pfs_player_scores)
+            pfs_player_scores[leaf[0]] += leaf[1]
+            print(pfs_player_scores)
+            
+            #if any of the players' scores exceeds that needed to win a game,
+            #end the separate game
+            for p in pfs_player_scores:
+                
+                if pfs_player_scores[p] >= 50:
+                    
+                    play_from_state_end = True
+            
+            play_from_state_round += 1
 
-        state = {
-            'deck':deck[:],
-            'player_hands':{p:player_hands[p][:] for p in player_hands},
-            'discard_pile':discard_pile[:],
-            'end':end,
-            'turn':turn,
-            'n_cycles':n_cycles,
-            'direction':direction,
-            'wild_card_chosen_colour':wild_card_chosen_colour,
-            'wild_card_last_played':wild_card_last_played,
-            'last_plus_four_turn':last_plus_four_turn,
-            'illegal_plus_four':illegal_plus_four,
-            'n_cards_to_pick_up':n_cards_to_pick_up,
-            'discard_pile_flip':discard_pile_flip,
-            'loop_count':loop_count,
-            'drawn_wpf_card_played':drawn_wpf_card_played
-        }
-        
         #the player and previous player (out of 1 to N_players) can be 
         #determined from n_cycles like so
         previous_player = (n_cycles - direction) % N_players + 1
         player = n_cycles % N_players + 1
-        
-        leaf = play_from_state(game,copy.deepcopy(state),colours,N_players)
-        branch_winner = leaf[0]
-        branch_winner_score = leaf[1]
 
         #the hands of each player before anything happens this turn
         player_hands_pre_play = {p:player_hands[p][:] for p in player_hands}
@@ -512,12 +593,14 @@ def play_game(game):
         if turn > 10000:
             end = True
             
-        #the hand of the current player at the end of this turn
+        #the hand of the current player at the end of this turn AND...
         player_hand_post_play = player_hands['player_'+str(player)][:]
-                
+        player_hands_post_play = {p:player_hands[p][:] for p in player_hands}
+        
         #adding data from current turn to game data
         column_variables = {
             'game':game,
+            'round':round,
             'turn':turn,
             'direction_pre_play':direction_pre_play,
             'player':player,
@@ -533,7 +616,7 @@ def play_game(game):
             'player_possible_cards':','.join(player_possible_cards),
             'player_possible_plus_cards':','.join(player_possible_plus_cards),
             'played_card':played_card,
-            'challenge':challenge,
+            'challenge':challenge**2,
             'wild_card_chosen_colour':wild_card_chosen_colour,
             'trade_player':trade_player,
             'player_hand_post_play':','.join(player_hand_post_play)
@@ -548,8 +631,55 @@ def play_game(game):
         #end the game if any player's hand is empty
         if [] in [player_hands[p] for p in player_hands]:
             end = True
+            round_winner = player
+            score = sum([hand_score(player_hands_post_play[p]) 
+                                             for p in player_hands_post_play])
 
         turn += 1
         n_cycles += direction
+
+    return pd.DataFrame(turns),round_winner,score
+
+
+def play_game(game):
+    
+    player_scores = {'player_'+str(i+1):0 for i in range(N_players)}
+    
+    end = False
+    round = 0
+    
+    while end == False:
+        print('REAL ROUND START REEEEEEEEEEEEEEE')
+        print(player_scores)
+        if round == 0:
             
-    return pd.DataFrame(turns)
+            round_winner = 1
+            
+        start_player = round_winner
+        round_data = play_round(game,round,start_player,player_scores)
+        
+        turns = round_data[0]
+        round_winner = round_data[1]
+        round_winner_score = round_data[2]
+        
+        player_scores['player_'+str(round_winner)] += round_winner_score
+        
+        if round == 0:
+            
+            rounds_turns = turns
+            
+        else:
+            
+            rounds_turns = rounds_turns.append(turns)
+
+        for p in player_scores:
+            
+            if player_scores[p] >= 50:
+                
+                end = True
+        
+        round += 1
+        print('REAL ROUND END')
+        print(player_scores)
+    return round_winner
+    #return rounds_turns
