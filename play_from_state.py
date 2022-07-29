@@ -20,10 +20,8 @@ def play_from_state(game,state,colours,N_players):
     loop_count = state['loop_count']
     drawn_wpf_card_played = state['drawn_wpf_card_played']
 
-    #print('FAKE ROUND START')
     while end == False:
-        print('fake turn start')
-        print(player_hands)
+
         previous_player = (n_cycles - direction) % N_players + 1
         player = n_cycles % N_players + 1
         
@@ -208,7 +206,7 @@ def play_from_state(game,state,colours,N_players):
             player_hands = new_player_hands
                       
         if turn > 10000:
-            winner = 'player_1'
+            winner = 'player_1' #THIS NEEDS TO BE CHANGED
             end = True
             
         if [] in [player_hands[p] for p in player_hands]:
@@ -220,5 +218,5 @@ def play_from_state(game,state,colours,N_players):
 
         turn += 1
         n_cycles += direction
-    #print(winner,score)
+
     return winner,score

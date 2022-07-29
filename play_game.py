@@ -124,8 +124,7 @@ def play_round(game,round,start_player,player_scores):
     
     #players keep taking turns until end becomes True
     while end == False:
-        print('REAL TURN START')
-        print(player_hands)
+
         #when play_from_state_end is True, the separate game ends
         play_from_state_end = False
         #the number of rounds played in the separate game
@@ -135,8 +134,7 @@ def play_round(game,round,start_player,player_scores):
         #here, the full seperate game is played, starting from the current 
         #state of play
         while play_from_state_end == False:
-            print('fake round start')
-            print(player_hands)
+
             #start the first round of the separate game from the current state 
             #of play in the actual game
             if play_from_state_round == 0:
@@ -207,12 +205,10 @@ def play_round(game,round,start_player,player_scores):
                 #the winner of the played round and their score
                 branch_winner = leaf[0]
                 branch_winner_score = leaf[1]
-                print('fake round outcome',branch_winner,branch_winner_score)
+
             #add the score of the round winner to their total score so far for
             #the separate game
-            print(pfs_player_scores)
             pfs_player_scores[leaf[0]] += leaf[1]
-            print(pfs_player_scores)
             
             #if any of the players' scores exceeds that needed to win a game,
             #end the separate game
@@ -649,8 +645,7 @@ def play_game(game):
     round = 0
     
     while end == False:
-        print('REAL ROUND START REEEEEEEEEEEEEEE')
-        print(player_scores)
+
         if round == 0:
             
             round_winner = 1
@@ -679,7 +674,5 @@ def play_game(game):
                 end = True
         
         round += 1
-        print('REAL ROUND END')
-        print(player_scores)
+
     return round_winner
-    #return rounds_turns
