@@ -1,62 +1,40 @@
-from functions import eligible_cards
-from functions import eligible_plus_cards
-from functions import hand_score
+from definitions import (
+    #deck variables
+    colours,
+    N_players,
+    start_cards_per_player,
+    original_deck,
+    #data collection
+    card_types,
+    all_columns
+)
+from functions import (
+    eligible_cards,
+    eligible_plus_cards,
+    hand_score,
+    count_hand_cards_of_type,
+    count_distinct_numbers_or_actions_in_hand,
+    count_distinct_colours_in_hand,
+    card_type_is_type,
+    m_players_later_n_cards,
+    m_players_later_score,
+)
 from play_from_state import play_from_state
+from train_models import (
+    trade_model    
+)
+from decision_functions import (
+    choose_trade_player    
+)
 import random
 import numpy as np
 import pandas as pd
-import copy 
+import copy
 
-#setting some parameters for the game
-colours = ['r','g','b','y']
-N = 2
-N_duplicates = 1
-N_zeros = 1
-N_players = 2
-start_cards_per_player = 2
-N_wild = 1
-N_action = 1
-actions = ['_skip','_reverse','_+2']
-#creating a list of all the cards in the deck
-all_number_cards = [c + str(j+1) 
-                    for c in colours
-                    for j in range(N)] * N_duplicates
-all_number_cards += [c + '0' for c in colours] * N_zeros
-all_wild_cards = ['wild','wild+4'] * N_wild
-all_action_cards = [c + a
-                    for c in colours
-                    for a in actions] * N_action
-original_deck = all_number_cards + all_wild_cards + all_action_cards
-
-def play_round(game,round,start_player,player_scores):
+def play_round(game,round,start_player,player_scores,random_decisions):
 
     #table to add data from each turn to
-    turns = {
-        'game':[],
-        'round':[],
-        'turn':[],
-        'direction_pre_play':[],
-        'player':[],
-        'player_hand_pre_play':[],
-        'jump_in_player':[],
-        'player_n_cards_pre_play':[]
-    }
-    turns.update({
-        'player_'+str(i+1)+'_n_cards_pre_play':[] for i in range(N_players)
-    })
-    turns.update({
-        'player_possible_cards':[],
-        'player_possible_plus_cards':[],
-        'played_card':[],
-        'challenge':[],
-        'wild_card_chosen_colour':[],
-        'trade_player':[],
-        'player_hand_post_play':[]
-    })
-    turns.update({
-        'branch_winner':[],
-        'branch_winner_score':[]
-    })
+    data = {c:[] for c in all_columns}
 
     #game starts with original deck which is then shuffled
     deck = original_deck[:]
@@ -214,7 +192,7 @@ def play_round(game,round,start_player,player_scores):
             #end the separate game
             for p in pfs_player_scores:
                 
-                if pfs_player_scores[p] >= 50:
+                if pfs_player_scores[p] >= 500:
                     
                     play_from_state_end = True
             
@@ -225,6 +203,13 @@ def play_round(game,round,start_player,player_scores):
         previous_player = (n_cycles - direction) % N_players + 1
         player = n_cycles % N_players + 1
 
+        #the latest value of branch_winner will be the winner of the separate
+        #game
+        if 'player_' + str(previous_player) == branch_winner:
+            previous_player_won_play_from_state_game = 1
+        else:
+            previous_player_won_play_from_state_game = 0
+            
         #the hands of each player before anything happens this turn
         player_hands_pre_play = {p:player_hands[p][:] for p in player_hands}
         player_hand_pre_play = player_hands['player_'+str(player)][:]
@@ -302,6 +287,12 @@ def play_round(game,round,start_player,player_scores):
                                         player_hand_pre_play,discard_pile[-1])
         else:
             player_possible_plus_cards = []
+        #HERE, DETERMINE THE CARD THAT THE PLAYER WILL PLAY USING PREDICTED GAME OUTCOME
+        #NEED TO CONSIDER THAT IF PREVIOUSLY PLAYED CARD WAS WILD+4, PREDICTION SHOULD BE 
+        #MADE WITH PREVIOUS PLAYER HAVING 4 EXTRA CARDS AS PLAYER CAN ONLY PLAY IF
+        #THEIR CHALLENGE IS SUCCESSFUL IN THIS CASE - DETERMINING THE CARD THEY WILL 
+        #PLAY WILL DETERMINE THE VALUES OF THE PREDICTORS FOR PREDICTING WHETHER IT 
+        #WILL BE BETTER TO CHALLENGE OR NOT WHENEVER THE OPPORTUNITY ARISES
 
         #if the previous player played a wild+4, the current player can 
         #challenge it's use as one can only be played if the player has no 
@@ -319,9 +310,11 @@ def play_round(game,round,start_player,player_scores):
             and drawn_wpf_card_played == False 
             #checking wild+4 was played in previous turn, not earlier
             and turn - last_plus_four_turn == 1): 
+            previous_player_played_wild_plus_four = True #WHAT IS THIS USED FOR?
             #current player may or may not challenge
             challenge = np.random.choice([True,False])
         else:
+            previous_player_played_wild_plus_four = True
             #no challenge if wild card wasn't played
             challenge = False
         #now that challenge decision has been made, no longer need a record of 
@@ -329,6 +322,7 @@ def play_round(game,round,start_player,player_scores):
         drawn_wpf_card_played = False
         #if current player correctly challenges
         if challenge == True and illegal_plus_four == True:
+            correct_challenge = 1
             #previous player has to pick up n_cards_to_pick_up cards from the
             #deck (n_cards_to_pick_up will have accumulated 4 when they played 
             #the wild+4)
@@ -337,6 +331,7 @@ def play_round(game,round,start_player,player_scores):
             n_cards_to_pick_up = 0
         #if current player incorrectly challenges
         if challenge == True and illegal_plus_four == False:
+            correct_challenge = 0
             #previous player has to pick up no cards; 2 cards are added to 
             #n_cards_to_pick_up and current player will be forced to pick up
             #this many cards (see below)
@@ -345,6 +340,7 @@ def play_round(game,round,start_player,player_scores):
         #if current player doesn't challenge, then previous player doesn't have
         #to pick up any cards and n_cards_to_pick_up remains the same
         if challenge == False:
+            correct_challenge = ''
             previous_player_n_drawn_cards = 0
             
         #if there was a jump-in, this effectively cancels the turn for the 
@@ -476,6 +472,11 @@ def play_round(game,round,start_player,player_scores):
                 discard_pile =  discard_pile[n_discard_pick_up:]
                 player_hands['player_'+str(p)] += p_drawn_cards 
             players_drawn_cards.append(p_drawn_cards)
+            
+        player_hand_pre_card_play = player_hands['player_'+str(player)][:]
+        player_hands_pre_card_play = {p:player_hands[p][:] for p in player_hands}
+        direction_pre_card_play = direction
+            
         #if current player played a card, remove it from their hand and add it
         #to the top of the discard pile; this can include a single card that 
         #they have picked up but can now play, as all drawing has now been 
@@ -520,6 +521,16 @@ def play_round(game,round,start_player,player_scores):
                 discard_pile = []
         else:
             discard_pile_flip = False
+            
+        #MAYBE SHOULD SET PRE PLAY N CARDS ETC VALUES HERE, AS PREVIOUS PLAYER WILL HAVE COLLECTED CARDS AT THIS POINT
+        #IF THEIR ILLEGAL WILD+4 WAS CHALLENGED
+        #ALTHOUGH HAVING 'CHALLENGE' AS A PREDICTOR MEANS TECHNICALLY IT IS IMPLICITLY KNOWN THAT PREVIOUS PLAYER WILL HAVE
+        #4 MORE CARDS
+        #THINK THE ABOVE IS NOW SOLVED WITH THE NEW '...PRE/POST_CARD_PLAY' VALUES
+        
+        player_hand_post_card_play = player_hands['player_'+str(player)][:]
+        player_hands_post_card_play = {p:player_hands[p][:] for p in player_hands}
+        direction_post_card_play = direction
 
         #effects if played card was any kind of special card
         if played_card == 'wild+4':
@@ -547,19 +558,66 @@ def play_round(game,round,start_player,player_scores):
             #pick up to n_cards_to_pick_up 
             n_cards_to_pick_up += int(played_card[-1])
         if '7' in played_card:
+            #the hand of the current player before the trade AAAND...
+            player_hand_pre_trade = player_hands['player_'+str(player)][:]
+            player_hands_pre_trade = {p
+                                  :player_hands[p][:] for p in player_hands}
+            direction_pre_trade = direction
             #if a 7 was played, the current player has to trade hands with 
             #a player of their choice
             current_player_hand = player_hands['player_'+str(player)][:]
             #randomly choose one of the players that isn't the current 
             #player
-            trade_player = np.random.choice([p for p in player_hands
-                                         if p != 'player_'+str(player)])
+            if random_decisions == True:# or player != 3:
+                trade_player = np.random.choice([p for p in player_hands
+                                             if p != 'player_'+str(player)])
+                
+                #choose_trade_player(player,
+                 #                   player_hand_pre_trade,
+                  #                  direction_pre_trade,
+                   #                 player_hands_pre_trade,
+                    #                player_scores,
+                     #               challenge,
+                      #              trade_model)
+                #from decision_functions import all_options_predictions
+                #print(len(all_options_predictions))
+                
+            if random_decisions == False:# and player == 3: #REMEMBER TO REMOVE PLAYER TING IN A BIT!!!
+                if player == 3:
+                    THINGY = 1
+                else:
+                    THINGY = -1
+                trade_player = choose_trade_player(player,
+                                                   player_hand_pre_trade,
+                                                   direction_pre_trade,
+                                                   player_hands_pre_trade,
+                                                   player_scores,
+                                                   challenge,
+                                                   trade_model,
+                                                   THINGY)
             trade_player_hand = player_hands[trade_player][:]
             #switch hands of current player with player chosen for trade
             player_hands['player_'+str(player)] = trade_player_hand
             player_hands[trade_player] = current_player_hand
+            #the position of the player traded with relative to the current 
+            #player e.g. if direction is anti-clockwise and player 2 trades
+            #with player 4, player 4's relative position to player 2 is 3
+            trade_player_relative_position = direction * (
+                    int(str.split(trade_player,'_')[-1]) - player
+                ) % N_players
+            #the hand of the current player after the trade AAAND...
+            player_hand_post_trade = player_hands['player_'+str(player)][:]
+            player_hands_post_trade = {p
+                                  :player_hands[p][:] for p in player_hands}
+            direction_post_trade = direction
         else:
+            player_hand_pre_trade = player_hands['player_'+str(player)][:]
             trade_player = ''
+            trade_player_relative_position = ''
+            player_hand_post_trade = player_hands['player_'+str(player)][:]
+            player_hands_post_trade = {p
+                                  :player_hands[p][:] for p in player_hands}
+            direction_post_trade = direction
         if '0' in played_card:
             #if a 0 was played, every player passes their hand to the next
             #player in the current direction of play; so if the direction 
@@ -583,7 +641,10 @@ def play_round(game,round,start_player,player_scores):
                                 [player_hands[p] for p in player_hands][i]
                                     for i in range(N_players)}
             player_hands = new_player_hands
-                                    
+        #need to define trade_player_relative_position again in this case #ANYTHING ELSE?
+        if played_card == '':
+            trade_player_relative_position = ''
+
         #if a game has lasted this long, then it is almost certainly stuck in a
         #loop, so end it
         if turn > 10000:
@@ -592,38 +653,110 @@ def play_round(game,round,start_player,player_scores):
         #the hand of the current player at the end of this turn AND...
         player_hand_post_play = player_hands['player_'+str(player)][:]
         player_hands_post_play = {p:player_hands[p][:] for p in player_hands}
-        
-        #adding data from current turn to game data
-        column_variables = {
+        direction_post_play = direction
+            
+        #VARIABLES N THAT FOR DATA COLLECTION
+        row_values = {
             'game':game,
             'round':round,
             'turn':turn,
-            'direction_pre_play':direction_pre_play,
             'player':player,
-            'player_hand_pre_play':','.join(player_hand_pre_play),
-            'jump_in_player':jump_in_player,
-            'player_n_cards_pre_play':len(player_hand_pre_play)
-        }
-        column_variables.update({
-            p+'_n_cards_pre_play':len(player_hands_pre_play[p]) 
-                                             for p in player_hands_pre_play
-        })
-        column_variables.update({
-            'player_possible_cards':','.join(player_possible_cards),
-            'player_possible_plus_cards':','.join(player_possible_plus_cards),
-            'played_card':played_card,
+            'previous_player_played_wild_plus_four':
+                                        previous_player_played_wild_plus_four,
             'challenge':challenge**2,
-            'wild_card_chosen_colour':wild_card_chosen_colour,
-            'trade_player':trade_player,
-            'player_hand_post_play':','.join(player_hand_post_play)
+            'correct_challenge':correct_challenge,
+            #'wild_card_chosen_colour':wild_card_chosen_colour, #MAY INCLUDE THIS FEATURE LATER
+            'trade_player_relative_position':trade_player_relative_position,
+            'player_current_score':player_scores['player_'+str(player)],
+            'player_n_cards_pre_play':len(player_hand_pre_play),
+            'player_n_cards_post_play':len(player_hand_post_play),
+            'player_n_cards_pre_card_play':len(player_hand_pre_card_play),
+            'player_n_cards_post_card_play':len(player_hand_post_card_play),
+            'player_n_cards_pre_trade':len(player_hand_pre_trade),
+            'player_n_cards_post_trade':len(player_hand_post_trade)
+        }
+        for t in card_types:
+            row_values.update({
+                'player_n_' + t + '_cards_pre_play':
+                            count_hand_cards_of_type(player_hand_pre_play,t),
+                'player_n_' + t + '_cards_post_play':
+                            count_hand_cards_of_type(player_hand_post_play,t),
+                'player_n_' + t + '_cards_pre_card_play':
+                        count_hand_cards_of_type(player_hand_pre_card_play,t),
+                'player_n_' + t + '_cards_post_card_play':
+                        count_hand_cards_of_type(player_hand_post_card_play,t),
+                'player_n_' + t + '_cards_pre_trade':
+                            count_hand_cards_of_type(player_hand_pre_trade,t)
+            })
+        row_values.update({
+            'player_n_unique_numbers_or_actions_pre_play':
+                count_distinct_numbers_or_actions_in_hand(
+                                                        player_hand_pre_play),
+            'player_n_unique_numbers_or_actions_post_play':
+                count_distinct_numbers_or_actions_in_hand(
+                                                        player_hand_post_play),
+            'player_n_unique_numbers_or_actions_pre_card_play':
+                count_distinct_numbers_or_actions_in_hand(
+                                                    player_hand_pre_card_play),
+            'player_n_unique_numbers_or_actions_post_card_play':
+                count_distinct_numbers_or_actions_in_hand(
+                                                player_hand_post_card_play),
+            'player_n_unique_numbers_or_actions_pre_trade':
+                count_distinct_numbers_or_actions_in_hand(
+                                                        player_hand_pre_trade),
+            'player_n_unique_colours_pre_play':
+                        count_distinct_colours_in_hand(player_hand_pre_play),
+            'player_n_unique_colours_post_play':
+                        count_distinct_colours_in_hand(player_hand_post_play),
+            'player_n_unique_colours_pre_trade':
+                        count_distinct_colours_in_hand(player_hand_pre_trade),
+            'player_hand_score_pre_play':hand_score(player_hand_pre_play),
+            'player_hand_score_post_play':hand_score(player_hand_post_play),
+            'player_hand_score_pre_trade':hand_score(player_hand_pre_trade)
         })
-        column_variables.update({
-            'branch_winner':branch_winner,
-            'branch_winner_score':branch_winner_score
-        })
-        for c in column_variables:
-            turns[c].append(column_variables[c])
-            
+        for t in card_types:
+            row_values.update({
+                'played_card_is_' + t:card_type_is_type(played_card,t)
+            })
+        for i in range(N_players - 1):
+            row_values.update({
+                str(i+1) + '_players_later_pre_play_n_cards':
+                    m_players_later_n_cards(direction_pre_play,
+                                            player,
+                                            player_hands_pre_play,
+                                            i+1),
+                str(i+1) + '_players_later_post_play_n_cards':
+                    m_players_later_n_cards(direction_post_play,
+                                            player,
+                                            player_hands_post_play,
+                                            i+1),
+                str(i+1) + '_players_later_n_cards_post_trade':
+                    m_players_later_n_cards(direction_post_trade,
+                                            player,
+                                            player_hands_post_trade,
+                                            i+1),
+                str(i+1) + '_players_later_pre_play_current_score':
+                    m_players_later_score(direction_pre_play,
+                                          player,
+                                          player_scores,
+                                          i+1),
+                str(i+1) + '_players_later_post_play_current_score':
+                    m_players_later_score(direction_post_play,
+                                          player,
+                                          player_scores,
+                                          i+1),
+                str(i+1) + '_players_later_current_score_post_trade':
+                    m_players_later_score(direction_post_trade,
+                                          player,
+                                          player_scores,
+                                          i+1)
+                })
+        row_values.update({'previous_player_won_play_from_state_game':
+                                   previous_player_won_play_from_state_game})
+        
+        for v in row_values:
+            data[v].append(row_values[v])
+        
         #end the game if any player's hand is empty
         if [] in [player_hands[p] for p in player_hands]:
             end = True
@@ -634,10 +767,10 @@ def play_round(game,round,start_player,player_scores):
         turn += 1
         n_cycles += direction
 
-    return pd.DataFrame(turns),round_winner,score
+    return pd.DataFrame(data),round_winner,score
 
 
-def play_game(game):
+def play_game(game,random_decisions):
     
     player_scores = {'player_'+str(i+1):0 for i in range(N_players)}
     
@@ -651,7 +784,8 @@ def play_game(game):
             round_winner = 1
             
         start_player = round_winner
-        round_data = play_round(game,round,start_player,player_scores)
+        round_data = play_round(
+                        game,round,start_player,player_scores,random_decisions)
         
         turns = round_data[0]
         round_winner = round_data[1]
@@ -669,10 +803,14 @@ def play_game(game):
 
         for p in player_scores:
             
-            if player_scores[p] >= 50:
+            if player_scores[p] >= 500:
                 
                 end = True
         
         round += 1
 
-    return round_winner
+    return rounds_turns
+
+#NOTES:
+#MAY WANT TO HAVE SOME FEATURES TO DO WITH THE DISCARD PILE TOP CARD AS 
+#THIS INDICATES SOMETHING ABOUT THE KNOWLEDGE OF THE PLAYER WHO PLAYED IT

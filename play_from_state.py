@@ -207,6 +207,7 @@ def play_from_state(game,state,colours,N_players):
                       
         if turn > 10000:
             winner = 'player_1' #THIS NEEDS TO BE CHANGED
+            score = 500 #NEED TO IDENTIFY THE CORRECT SOLUTION HERE
             end = True
             
         if [] in [player_hands[p] for p in player_hands]:
