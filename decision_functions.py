@@ -1,7 +1,7 @@
 from definitions import (
     card_types,
     trade_model_X_columns,
-    play_card_model_X_columns
+    play_non_zero_card_model_X_columns
 )
 from functions import (
     count_hand_cards_of_type,
@@ -108,12 +108,12 @@ def choose_card_to_play(player,
                         player_hands_pre_play,
                         player_scores,
                         model):
-    options_predictions = {c:[] for c in play_card_model_X_columns}
+    options_predictions = {c:[] for c in play_non_zero_card_model_X_columns}
     sevens = [c for c in possible_cards if '7' in c]
     for card in possible_cards:
         #THE PLAYERS HAND WILL LOOK DIFFERENT DEPENDING ON WHICH 7 IS PLAYED, 
         row_values = {
-                'challenge':
+                'challenge':[],
             }
 
 #

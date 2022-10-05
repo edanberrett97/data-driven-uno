@@ -84,7 +84,8 @@ for i in range(N_players - 1):
         str(i+1) + '_players_later_n_cards_post_trade',
         str(i+1) + '_players_later_pre_play_current_score', 
         str(i+1) + '_players_later_post_play_current_score',
-        str(i+1) + '_players_later_current_score_pre_trade',
+        str(i+1) + '_players_later_pre_card_play_current_score', 
+        str(i+1) + '_players_later_post_card_play_current_score',
         str(i+1) + '_players_later_current_score_post_trade'
     ]
 all_columns.append('previous_player_won_play_from_state_game')
@@ -143,15 +144,15 @@ play_zero_card_model_X_columns = [
         'player_current_score',
     ]
 for t in card_types:
-    play_card_model_X_columns.append('player_n_' + t + '_cards_pre_play')
-play_card_model_X_columns += [
+    play_zero_card_model_X_columns.append('player_n_' + t + '_cards_pre_play')
+play_zero_card_model_X_columns += [
         'player_n_unique_numbers_or_actions_pre_play',
         'player_n_unique_colours_pre_play',
         'player_hand_score_pre_play'
     ]
 for i in range(N_players - 1):
-    play_card_model_X_columns.append(
+    play_zero_card_model_X_columns.append(
                                 str(i+1) + '_players_later_n_cards_post_trade')
-    play_card_model_X_columns.append(
+    play_zero_card_model_X_columns.append(
                         str(i+1) + '_players_later_current_score_post_trade')
     

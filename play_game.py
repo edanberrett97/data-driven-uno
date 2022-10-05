@@ -708,10 +708,18 @@ def play_round(game,round,start_player,player_scores,random_decisions):
                         count_distinct_colours_in_hand(player_hand_pre_play),
             'player_n_unique_colours_post_play':
                         count_distinct_colours_in_hand(player_hand_post_play),
+            'player_n_unique_colours_pre_card_play':
+                    count_distinct_colours_in_hand(player_hand_pre_card_play),
+            'player_n_unique_colours_post_card_play':
+                    count_distinct_colours_in_hand(player_hand_post_card_play),
             'player_n_unique_colours_pre_trade':
                         count_distinct_colours_in_hand(player_hand_pre_trade),
             'player_hand_score_pre_play':hand_score(player_hand_pre_play),
             'player_hand_score_post_play':hand_score(player_hand_post_play),
+            'player_hand_score_pre_card_play':hand_score(
+                                                    player_hand_pre_card_play),
+            'player_hand_score_post_card_play':hand_score(
+                                                player_hand_post_card_play),
             'player_hand_score_pre_trade':hand_score(player_hand_pre_trade)
         })
         for t in card_types:
@@ -730,6 +738,16 @@ def play_round(game,round,start_player,player_scores,random_decisions):
                                             player,
                                             player_hands_post_play,
                                             i+1),
+                str(i+1) + '_players_later_pre_card_play_n_cards':
+                    m_players_later_n_cards(direction_pre_card_play,
+                                            player,
+                                            player_hands_pre_card_play,
+                                            i+1),
+                str(i+1) + '_players_later_post_card_play_n_cards':
+                    m_players_later_n_cards(direction_post_card_play,
+                                            player,
+                                            player_hands_post_card_play,
+                                            i+1),
                 str(i+1) + '_players_later_n_cards_post_trade':
                     m_players_later_n_cards(direction_post_trade,
                                             player,
@@ -742,6 +760,16 @@ def play_round(game,round,start_player,player_scores,random_decisions):
                                           i+1),
                 str(i+1) + '_players_later_post_play_current_score':
                     m_players_later_score(direction_post_play,
+                                          player,
+                                          player_scores,
+                                          i+1),
+                str(i+1) + '_players_later_pre_card_play_current_score':
+                    m_players_later_score(direction_pre_card_play,
+                                          player,
+                                          player_scores,
+                                          i+1),
+                str(i+1) + '_players_later_post_card_play_current_score':
+                    m_players_later_score(direction_post_card_play,
                                           player,
                                           player_scores,
                                           i+1),
