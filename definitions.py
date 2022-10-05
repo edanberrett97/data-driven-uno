@@ -30,129 +30,68 @@ card_types = [
     '7'
 ]
 
-all_columns = [
+all_columns_places = [
     'game',
     'round',
     'turn',
     'player',
     'previous_player_played_wild_plus_four',
-    'challenge',
+    'challenge-T,P',
     'correct_challenge',
     #'wild_card_chosen_colour':[], #MAY INCLUDE THIS FEATURE LATER - AND MAYBE ALSO STUFF TO DO WITH DISCARD PILE TOP CARD
-    'trade_player_relative_position',
-    'player_current_score',
+    'trade_player_relative_position-T',
+    'player_current_score-T,P',
     'player_n_cards_pre_play',
-    'player_n_cards_post_play',
+    'player_n_cards_post_play-P',
     'player_n_cards_pre_card_play',
     'player_n_cards_post_card_play',
-    'player_n_cards_pre_trade',
-    'player_n_cards_post_trade',
+    'player_n_cards_pre_trade-T',
+    'player_n_cards_post_trade-T',
 ]
 for t in card_types:
-    all_columns += [
+    all_columns_places += [
         'player_n_' + t + '_cards_pre_play',
         'player_n_' + t + '_cards_post_play',
         'player_n_' + t + '_cards_pre_card_play',
-        'player_n_' + t + '_cards_post_card_play',
-        'player_n_' + t + '_cards_pre_trade'
+        'player_n_' + t + '_cards_post_card_play-P',
+        'player_n_' + t + '_cards_pre_trade-T'
     ]
-all_columns += [
+all_columns_places += [
     'player_n_unique_numbers_or_actions_pre_play',
     'player_n_unique_numbers_or_actions_post_play',
     'player_n_unique_numbers_or_actions_pre_card_play',
-    'player_n_unique_numbers_or_actions_post_card_play',
-    'player_n_unique_numbers_or_actions_pre_trade',
+    'player_n_unique_numbers_or_actions_post_card_play-P',
+    'player_n_unique_numbers_or_actions_pre_trade-T',
     'player_n_unique_colours_pre_play',
     'player_n_unique_colours_post_play',
     'player_n_unique_colours_pre_card_play',
-    'player_n_unique_colours_post_card_play',
-    'player_n_unique_colours_pre_trade',
+    'player_n_unique_colours_post_card_play-P',
+    'player_n_unique_colours_pre_trade-T',
     'player_hand_score_pre_play',
     'player_hand_score_post_play',
     'player_hand_score_pre_card_play',
-    'player_hand_score_post_card_play',
-    'player_hand_score_pre_trade'
+    'player_hand_score_post_card_play-P',
+    'player_hand_score_pre_trade-T'
 ]
 for t in card_types:
-    all_columns.append('played_card_is_' + t)
+    all_columns_places.append('played_card_is_' + t + '-P')
 for i in range(N_players - 1):
-    all_columns += [
+    all_columns_places += [
         str(i+1) + '_players_later_pre_play_n_cards', #SOLVED I THINK?>#MAYBE THIS SHOULD ACCOUNT FOR IF PREVIOUS PLAYER HAS PICKED UP ILLEGAL WILD+4 PENALTY CARDS
-        str(i+1) + '_players_later_post_play_n_cards', 
+        str(i+1) + '_players_later_post_play_n_cards-P', 
         str(i+1) + '_players_later_pre_card_play_n_cards',
         str(i+1) + '_players_later_post_card_play_n_cards', 
-        str(i+1) + '_players_later_n_cards_post_trade',
+        str(i+1) + '_players_later_n_cards_post_trade-T',
         str(i+1) + '_players_later_pre_play_current_score', 
-        str(i+1) + '_players_later_post_play_current_score',
+        str(i+1) + '_players_later_post_play_current_score-P',
         str(i+1) + '_players_later_pre_card_play_current_score', 
         str(i+1) + '_players_later_post_card_play_current_score',
-        str(i+1) + '_players_later_current_score_post_trade'
+        str(i+1) + '_players_later_current_score_post_trade-T'
     ]
-all_columns.append('previous_player_won_play_from_state_game')
+all_columns_places.append('previous_player_won_play_from_state_game')
 
-identifier_columns = [
-        'game',
-        'round',
-        'turn',
-        'player'
-    ]
-
-trade_model_X_columns = [
-        'challenge',
-        'trade_player_relative_position',
-        #MAYBE SHOULD ADD PREVIOUS PLAYER PLAYED WILD PLUS FOUR?
-        'player_n_cards_pre_trade',
-        'player_n_cards_post_trade',
-        'player_current_score',
-    ]
-for t in card_types:
-    trade_model_X_columns.append('player_n_' + t + '_cards_pre_trade')
-trade_model_X_columns += [
-        'player_n_unique_numbers_or_actions_pre_trade',
-        'player_n_unique_colours_pre_trade',
-        'player_hand_score_pre_trade'
-    ]
-for i in range(N_players - 1):
-    trade_model_X_columns.append(
-                                str(i+1) + '_players_later_n_cards_post_trade')
-    trade_model_X_columns.append(
-                        str(i+1) + '_players_later_current_score_post_trade')
-    
-#
-play_non_zero_card_model_X_columns = [
-        'challenge',
-        'player_n_cards_post_play',
-        'player_current_score',
-    ]
-for t in card_types:
-    play_non_zero_card_model_X_columns.append(
-                                        'player_n_' + t + '_cards_post_play')
-play_non_zero_card_model_X_columns += [
-        'player_n_unique_numbers_or_actions_post_play',
-        'player_n_unique_colours_post_play',
-        'player_hand_score_post_play'
-    ]
-for i in range(N_players - 1):
-    play_non_zero_card_model_X_columns.append(
-                                str(i+1) + '_players_later_n_cards_post_play')
-    play_non_zero_card_model_X_columns.append(
-                        str(i+1) + '_players_later_current_score_post_play')
-    
-play_zero_card_model_X_columns = [
-        'challenge',
-        'player_n_cards_pre_play',
-        'player_current_score',
-    ]
-for t in card_types:
-    play_zero_card_model_X_columns.append('player_n_' + t + '_cards_pre_play')
-play_zero_card_model_X_columns += [
-        'player_n_unique_numbers_or_actions_pre_play',
-        'player_n_unique_colours_pre_play',
-        'player_hand_score_pre_play'
-    ]
-for i in range(N_players - 1):
-    play_zero_card_model_X_columns.append(
-                                str(i+1) + '_players_later_n_cards_post_trade')
-    play_zero_card_model_X_columns.append(
-                        str(i+1) + '_players_later_current_score_post_trade')
-    
+all_columns = [str.split(c,'-')[0] for c in all_columns_places]    
+trade_model_X_columns = [str.split(c,'-')[0] 
+                                     for c in all_columns_places if 'T' in c]
+play_card_model_X_columns = [str.split(c,'-')[0] 
+                                     for c in all_columns_places if 'P' in c]
